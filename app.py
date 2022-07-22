@@ -1,3 +1,4 @@
+from this import d
 import numpy as np
 
 import sqlalchemy
@@ -5,6 +6,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 from collections import defaultdict
+import datetime as dt
 
 from flask import Flask, jsonify
 
@@ -32,7 +34,8 @@ def homepage():
     return (
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
-        f"/api/v1.0/stations"
+        f"/api/v1.0/stations<br/>"
+        f"/api/v1.0/<start>"
 
     )
 
@@ -57,6 +60,20 @@ def stations():
     
     sd_list = list(np.ravel(sq))
     return jsonify(sd_list)
+
+@app.route("/api/v1.0/<start>")
+def start(start):
+    session = Session(engine)
+    func_dt = [func.avg(measurement.tobs),
+                    func.max(measurement.tobs),
+                    func.min(measurement.tobs)]
+    start = session.query(*func_dt).\
+    filter(func.strftime("%Y-%m-%d", measurement.date) >= start).all()
+    session.close()
+    date_temp_list = list(np.ravel(start))
+    return(jsonify(date_temp_list))
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
