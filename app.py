@@ -1,12 +1,9 @@
-from this import d
 import numpy as np
 
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
-from collections import defaultdict
-import datetime as dt
 
 from flask import Flask, jsonify
 
@@ -33,9 +30,31 @@ def homepage():
 
     return (
         f"Available Routes:<br/>"
+        f"-----------------------<br/>"
+        f"                        <br/>"
+        f"-----------------------<br/>"
+        f"Precipitation (In Inches) by date:<br/>"
         f"/api/v1.0/precipitation<br/>"
+        f"-----------------------<br/>"
+        f"                        <br/>"
+        f"-----------------------<br/>"
+        f"List of stations: <br/>"
         f"/api/v1.0/stations<br/>"
-        f"/api/v1.0/<start>"
+        f"-----------------------<br/>"
+        f"                        <br/>"
+        f"-----------------------<br/>"
+        f"Provide a start date, find avg, max, and min temperature<br/>" 
+        f"for all dates greater than or equal to start date (In Fahrenheit):<br/>"
+        f"format: YY-M-D<br/>" 
+        f"/api/v1.0/<start><br/>"
+        f"-----------------------<br/>"
+        f"                        <br/>"
+        f"-----------------------<br/>"
+        f"Provide a start date and an end date, find avg, max and<br/>"
+        f"min temperature within the the given interval: <br/>"
+        f"format: YY-M-D/YY-M-D<br/>" 
+        f"/api/v1.0/<start>/<end><br/>"
+        f"-----------------------"
 
     )
 
@@ -54,7 +73,7 @@ def precipitation():
 @app.route("/api/v1.0/stations")
 def stations():
     session = Session(engine)
-    sq = session.query(measurement.station).\
+    sq = session.query(station.name).\
     filter(measurement.station == station.station).distinct().all()
     session.close()
     
@@ -71,9 +90,20 @@ def start(start):
     filter(func.strftime("%Y-%m-%d", measurement.date) >= start).all()
     session.close()
     date_temp_list = list(np.ravel(start))
-    return(jsonify(date_temp_list))
+    return (jsonify(date_temp_list))
 
-
+@app.route("/api/v1.0/<start>/<end>")
+def start_end(start, end):
+    session = Session(engine)
+    func_dt = [func.avg(measurement.tobs),
+                    func.max(measurement.tobs),
+                    func.min(measurement.tobs)]
+    start_end = session.query(*func_dt).\
+    filter(func.strftime("%Y-%m-%d", measurement.date) >= start).\
+    filter(func.strftime("%Y-%m-%d", measurement.date) <= end).all()
+    session.close()
+    date_temp_range_list = list(np.ravel(start_end))
+    return jsonify(date_temp_range_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
